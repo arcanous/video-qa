@@ -20,8 +20,8 @@ import { Send, VideoFile, Chat } from '@mui/icons-material';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export default function AskPage() {
-  const videoIds = getAllVideoIds();
+export default async function AskPage() {
+  const videoIds = await getAllVideoIds();
 
   return (
     <DashboardLayout currentPage="ask">

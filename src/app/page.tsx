@@ -10,7 +10,7 @@ export default async function RootPage() {
     redirect('/login');
   }
   
-  const videoCount = countVideos();
+  const videoCount = await countVideos();
   
   if (videoCount > 0) {
     redirect('/ask');

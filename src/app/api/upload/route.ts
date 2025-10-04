@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     
     const storedPath = writeVideoFile(id, file.name, buffer);
     
-    insertVideo(id, file.name, storedPath, file.size);
+    await insertVideo(id, file.name, storedPath, file.size);
     
     return NextResponse.json({ id });
   } catch (error) {
