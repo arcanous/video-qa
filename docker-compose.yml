@@ -18,7 +18,7 @@ services:
       retries: 20
 
   worker:
-    image: videoqa-worker:0.0.16
+    image: videoqa-worker:0.0.17
     pull_policy: never
     env_file:
       - .env.local
@@ -29,7 +29,7 @@ services:
       WORKER_MAX_ATTEMPTS: "3"
       LOG_LEVEL: INFO
     volumes:
-      - ./data:/app/data              # ensures /data/worker/log.log is on host
+      - ./data/worker:/app/data
     depends_on:
       postgres:
         condition: service_healthy
