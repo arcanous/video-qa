@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-
-export const dynamic = 'force-dynamic';
+import DashboardLayout from '../../../components/DashboardLayout';
 import {
   Box,
   Card,
@@ -10,10 +9,12 @@ import {
   Button,
   Typography,
   Alert,
-  Container,
   LinearProgress,
+  Paper,
 } from '@mui/material';
 import { CloudUpload } from '@mui/icons-material';
+
+export const dynamic = 'force-dynamic';
 
 export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -66,65 +67,80 @@ export default function UploadPage() {
   };
 
   return (
-    <Container maxWidth="md">
-      <Box sx={{ mt: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Upload Video
+    <DashboardLayout currentPage="upload">
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+          Upload Videos
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+          Upload your video files to start asking questions about them
         </Typography>
         
-        <Card sx={{ mt: 3 }}>
-          <CardContent>
-            <form onSubmit={handleSubmit}>
-              <Box sx={{ mb: 3 }}>
-                <input
-                  id="file-input"
-                  type="file"
-                  accept="video/*"
-                  onChange={handleFileChange}
-                  style={{ display: 'none' }}
-                />
-                <Button
-                  variant="outlined"
-                  component="label"
-                  startIcon={<CloudUpload />}
-                  disabled={uploading}
-                  sx={{ mb: 2 }}
-                >
-                  Choose Video File
-                </Button>
-                {file && (
-                  <Typography variant="body2" color="text.secondary" sx={{ ml: 2 }}>
-                    Selected: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                  </Typography>
-                )}
-              </Box>
-
-              {uploading && <LinearProgress sx={{ mb: 2 }} />}
-
-              {error && (
-                <Alert severity="error" sx={{ mb: 2 }}>
-                  {error}
-                </Alert>
-              )}
-
-              {success && (
-                <Alert severity="success" sx={{ mb: 2 }}>
-                  {success}
-                </Alert>
-              )}
-
+        <Paper elevation={2} sx={{ p: 4, borderRadius: 2 }}>
+          <form onSubmit={handleSubmit}>
+            <Box sx={{ mb: 3 }}>
+              <input
+                id="file-input"
+                type="file"
+                accept="video/*"
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+              />
               <Button
-                type="submit"
-                variant="contained"
-                disabled={!file || uploading}
-                fullWidth
+                variant="outlined"
+                component="label"
+                startIcon={<CloudUpload />}
+                disabled={uploading}
+                sx={{ 
+                  mb: 2,
+                  py: 1.5,
+                  px: 3,
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontSize: '1rem',
+                }}
               >
-                {uploading ? 'Uploading...' : 'Upload Video'}
+                Choose Video File
               </Button>
-            </form>
-          </CardContent>
-        </Card>
+              {file && (
+                <Typography variant="body2" color="text.secondary" sx={{ ml: 2, mt: 1 }}>
+                  Selected: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                </Typography>
+              )}
+            </Box>
+
+            {uploading && <LinearProgress sx={{ mb: 2 }} />}
+
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
+
+            {success && (
+              <Alert severity="success" sx={{ mb: 2 }}>
+                {success}
+              </Alert>
+            )}
+
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={!file || uploading}
+              fullWidth
+              sx={{
+                py: 1.5,
+                borderRadius: 2,
+                textTransform: 'none',
+                fontSize: '1rem',
+                fontWeight: 'bold',
+              }}
+            >
+              {uploading ? 'Uploading...' : 'Upload Video'}
+            </Button>
+          </form>
+        </Paper>
       </Box>
-    </Container>
+    </DashboardLayout>
   );
 }
