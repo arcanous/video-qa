@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS frames (
   scene_id TEXT REFERENCES scenes(id) ON DELETE CASCADE,
   t_frame REAL,
   path TEXT,
-  phash BIGINT
+  phash TEXT
 );
 
 CREATE TABLE IF NOT EXISTS transcript_segments (
