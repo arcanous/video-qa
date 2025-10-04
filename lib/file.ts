@@ -1,6 +1,6 @@
 import { mkdirSync } from 'fs';
 import { promises as fsp } from 'fs';
-import { join } from 'path';
+import { join, extname, basename } from 'path';
 
 export function ensureUploadsDir(): void {
   const uploadsDir = join(process.cwd(), 'data', 'uploads');
@@ -21,8 +21,9 @@ export function toSafeFileName(original: string): string {
 
 export async function writeVideoFile(id: string, originalName: string, buffer: Buffer): Promise<string> {
   ensureUploadsDir();
-  const safeName = toSafeFileName(originalName);
-  const fileName = `${id}_${safeName}.mp4`;
+  const ext = (extname(originalName) || '.mp4').toLowerCase();
+  const base = toSafeFileName(basename(originalName, ext));
+  const fileName = `${id}_${base}${ext}`;
   const filePath = join(process.cwd(), 'data', 'uploads', fileName);
   
   await fsp.writeFile(filePath, buffer);
