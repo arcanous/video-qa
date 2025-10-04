@@ -11,6 +11,7 @@ import {
   Alert,
   LinearProgress,
   Paper,
+  Chip,
 } from '@mui/material';
 import { CloudUpload } from '@mui/icons-material';
 
@@ -21,6 +22,35 @@ export default function UploadPage() {
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [processingVideoId, setProcessingVideoId] = useState<string | null>(null);
+  const [processingStatus, setProcessingStatus] = useState<string>('');
+
+  // Poll processing status
+  const pollStatus = async (videoId: string) => {
+    try {
+      const response = await fetch(`/api/videos/${videoId}/status`);
+      if (response.ok) {
+        const status = await response.json();
+        setProcessingStatus(status.status);
+        
+        if (status.status === 'ready' || status.status === 'failed') {
+          setProcessingVideoId(null);
+          if (status.status === 'ready') {
+            setSuccess(`Video processing complete! Ready for questions.`);
+          } else {
+            setError('Video processing failed');
+          }
+        } else {
+          // Continue polling
+          setTimeout(() => pollStatus(videoId), 3000);
+        }
+      }
+    } catch (error) {
+      console.error('Status polling error:', error);
+      setProcessingVideoId(null);
+      setError('Failed to check processing status');
+    }
+  };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -56,6 +86,11 @@ export default function UploadPage() {
         // Reset file input
         const fileInput = document.getElementById('file-input') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
+        
+        // Start polling for processing status
+        setProcessingVideoId(result.id);
+        setProcessingStatus('uploaded');
+        pollStatus(result.id);
       } else {
         setError(result.error || 'Upload failed');
       }
@@ -121,6 +156,20 @@ export default function UploadPage() {
               <Alert severity="success" sx={{ mb: 2 }}>
                 {success}
               </Alert>
+            )}
+
+            {processingVideoId && (
+              <Box sx={{ mb: 2 }}>
+                <Chip
+                  label={`Processing... (${processingStatus})`}
+                  color="primary"
+                  variant="outlined"
+                  sx={{ mr: 1 }}
+                />
+                <Typography variant="caption" color="text.secondary">
+                  Video ID: {processingVideoId}
+                </Typography>
+              </Box>
             )}
 
             <Button

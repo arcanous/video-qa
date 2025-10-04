@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import { writeVideoFile } from '../../../../lib/file';
-import { insertVideo } from '../../../../lib/db';
+import { insertVideo, insertJob } from '../../../../lib/db';
 
 export const runtime = 'nodejs';
 
@@ -40,6 +40,9 @@ export async function POST(request: NextRequest) {
     const storedPath = await writeVideoFile(id, file.name, buffer);
     
     await insertVideo(id, file.name, storedPath, file.size);
+    
+    // Enqueue job for processing (worker will claim via FOR UPDATE SKIP LOCKED)
+    await insertJob(id);
     
     return NextResponse.json({ id });
   } catch (error) {
