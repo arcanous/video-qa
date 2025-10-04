@@ -5,6 +5,9 @@ CREATE EXTENSION IF NOT EXISTS vector;
 ALTER TABLE IF EXISTS videos
   ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'uploaded',
   ADD COLUMN IF NOT EXISTS duration_sec INT,
+  ADD COLUMN IF NOT EXISTS original_path TEXT,
+  ADD COLUMN IF NOT EXISTS original_name TEXT,
+  ADD COLUMN IF NOT EXISTS size_bytes INT,
   ADD COLUMN IF NOT EXISTS normalized_path TEXT;
 
 -- Dependent tables (now valid because videos exists)
@@ -31,7 +34,8 @@ CREATE TABLE IF NOT EXISTS scenes (
   idx INT,
   t_start REAL,
   t_end REAL,
-  clip_path TEXT
+  clip_path TEXT,
+  UNIQUE(video_id, idx)
 );
 
 CREATE TABLE IF NOT EXISTS frames (
@@ -48,7 +52,8 @@ CREATE TABLE IF NOT EXISTS transcript_segments (
   t_start REAL,
   t_end REAL,
   text TEXT,
-  embedding VECTOR(1536)
+  embedding VECTOR(1536),
+  UNIQUE(video_id, t_start, t_end)
 );
 
 CREATE TABLE IF NOT EXISTS frame_captions (

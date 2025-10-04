@@ -24,8 +24,8 @@ export async function countVideos(): Promise<number> {
 export async function insertVideo(id: string, originalName: string, storedPath: string, size: number): Promise<void> {
   await ready();
   await pool.query(
-    'INSERT INTO videos (id, normalized_path) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET normalized_path = EXCLUDED.normalized_path',
-    [id, storedPath]
+    'INSERT INTO videos (id, original_path, original_name, size_bytes) VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO UPDATE SET original_path = EXCLUDED.original_path, original_name = EXCLUDED.original_name, size_bytes = EXCLUDED.size_bytes',
+    [id, storedPath, originalName, size]
   );
 }
 

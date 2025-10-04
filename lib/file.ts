@@ -27,5 +27,5 @@ export async function writeVideoFile(id: string, originalName: string, buffer: B
   const filePath = join(process.cwd(), 'data', 'uploads', fileName);
   
   await fsp.writeFile(filePath, buffer);
-  return `data/uploads/${fileName}`;
+  return `uploads/${fileName}`;
 }
