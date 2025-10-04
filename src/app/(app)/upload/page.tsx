@@ -79,13 +79,6 @@ export default function UploadPage() {
         <Paper elevation={2} sx={{ p: 4, borderRadius: 2 }}>
           <form onSubmit={handleSubmit}>
             <Box sx={{ mb: 3 }}>
-              <input
-                id="file-input"
-                type="file"
-                accept="video/*"
-                onChange={handleFileChange}
-                style={{ display: 'none' }}
-              />
               <Button
                 variant="outlined"
                 component="label"
@@ -100,6 +93,13 @@ export default function UploadPage() {
                   fontSize: '1rem',
                 }}
               >
+                <input
+                  id="file-input"
+                  type="file"
+                  accept="video/*"
+                  onChange={handleFileChange}
+                  hidden
+                />
                 Choose Video File
               </Button>
               {file && (

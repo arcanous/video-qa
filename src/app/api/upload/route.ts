@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     
-    const storedPath = writeVideoFile(id, file.name, buffer);
+    const storedPath = await writeVideoFile(id, file.name, buffer);
     
     await insertVideo(id, file.name, storedPath, file.size);
     

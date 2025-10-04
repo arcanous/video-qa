@@ -1,4 +1,5 @@
-import { mkdirSync, writeFileSync } from 'fs';
+import { mkdirSync } from 'fs';
+import { promises as fsp } from 'fs';
 import { join } from 'path';
 
 export function ensureUploadsDir(): void {
@@ -18,12 +19,12 @@ export function toSafeFileName(original: string): string {
     .toLowerCase();
 }
 
-export function writeVideoFile(id: string, originalName: string, buffer: Buffer): string {
+export async function writeVideoFile(id: string, originalName: string, buffer: Buffer): Promise<string> {
   ensureUploadsDir();
   const safeName = toSafeFileName(originalName);
   const fileName = `${id}_${safeName}.mp4`;
   const filePath = join(process.cwd(), 'data', 'uploads', fileName);
   
-  writeFileSync(filePath, buffer);
+  await fsp.writeFile(filePath, buffer);
   return `data/uploads/${fileName}`;
 }
