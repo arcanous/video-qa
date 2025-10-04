@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getVideoStatus } from '../../../../../lib/db';
+import { getVideoStatus } from '@lib/db';
 
 export const runtime = 'nodejs';
 

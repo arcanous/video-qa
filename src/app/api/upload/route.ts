@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
-import { writeVideoFile } from '../../../../lib/file';
-import { insertVideo, insertJob } from '../../../../lib/db';
+import { writeVideoFile } from '@lib/file';
+import { insertVideo, insertJob } from '@lib/db';
 
 export const runtime = 'nodejs';
 
