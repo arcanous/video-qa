@@ -16,3 +16,21 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+
+  worker:
+    image: videoqa-worker:0.0.1
+    pull_policy: never
+    env_file:
+      - .env.local
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/videoqa
+      DATA_DIR: /app/data
+      WORKER_POLL_MS: "1500"
+      WORKER_MAX_ATTEMPTS: "3"
+      LOG_LEVEL: INFO
+    volumes:
+      - ./data:/app/data              # ensures /data/worker/log.log is on host
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
