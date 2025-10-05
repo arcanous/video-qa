@@ -1,134 +1,254 @@
-import { getAllVideoIds } from '../../../../lib/db';
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
 import DashboardLayout from '../../../components/DashboardLayout';
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  List,
-  ListItem,
-  ListItemText,
-  TextField,
-  Button,
-  Grid,
-  Paper,
-  Chip,
-  Avatar,
+  Box, Card, TextField, Button,
+  Select, MenuItem, FormControl, InputLabel,
+  IconButton, CircularProgress, Typography, Paper
 } from '@mui/material';
-import { Send, VideoFile, Chat } from '@mui/icons-material';
+import { Send, Stop, Image as ImageIcon, Close } from '@mui/icons-material';
 
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
 
-export default async function AskPage() {
-  const videoIds = await getAllVideoIds();
-
+export default function AskPage() {
+  const [videos, setVideos] = useState<Array<{id: string, original_name: string, status: string}>>([]);
+  const [selectedVideoId, setSelectedVideoId] = useState('');
+  const [imagePreview, setImagePreview] = useState<string>('');
+  const [uploadedImageId, setUploadedImageId] = useState<string>('');
+  const [error, setError] = useState<string>('');
+  const [loadingVideos, setLoadingVideos] = useState(true);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  const [messages, setMessages] = useState<Array<{id: string, role: string, content: string}>>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const [input, setInput] = useState('');
+  
+  // Load videos
+  useEffect(() => {
+    fetch('/api/videos')
+      .then(r => r.json())
+      .then(setVideos)
+      .catch(err => {
+        console.error('Failed to load videos:', err);
+        setError('Failed to load videos');
+      })
+      .finally(() => setLoadingVideos(false));
+  }, []);
+  
+  // Auto-scroll
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+  
+  // Handle image upload
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setImagePreview(URL.createObjectURL(file));
+    
+    // Upload immediately
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const res = await fetch('/api/ask/upload-image', {
+        method: 'POST',
+        body: formData
+      });
+      if (!res.ok) {
+        throw new Error('Upload failed');
+      }
+      const { imageId } = await res.json();
+      setUploadedImageId(imageId);
+      setError('');
+    } catch (error) {
+      console.error('Upload failed:', error);
+      setError('Failed to upload image');
+      setImagePreview('');
+    }
+  };
+  
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedVideoId || !input.trim() || isLoading) return;
+    
+    const userMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: input
+    };
+    
+    setMessages(prev => [...prev, userMessage]);
+    setIsLoading(true);
+    setInput('');
+    
+    try {
+      const response = await fetch('/api/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [...messages, userMessage],
+          videoId: selectedVideoId,
+          imageId: uploadedImageId
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to send message');
+      }
+      
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body');
+      }
+      
+      const assistantMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: ''
+      };
+      
+      setMessages(prev => [...prev, assistantMessage]);
+      
+      const decoder = new TextDecoder();
+      let done = false;
+      
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+        
+        if (value) {
+          const chunk = decoder.decode(value);
+          setMessages(prev => {
+            const newMessages = [...prev];
+            const lastMessage = newMessages[newMessages.length - 1];
+            if (lastMessage.role === 'assistant') {
+              lastMessage.content += chunk;
+            }
+            return newMessages;
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Chat error:', error);
+      setError('Failed to send message');
+    } finally {
+      setIsLoading(false);
+      setImagePreview('');
+      setUploadedImageId('');
+    }
+  };
+  
   return (
     <DashboardLayout currentPage="ask">
-      <Box sx={{ mt: 2 }}>
-        <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: 'text.primary' }}>
-          Ask Questions
-        </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-          Ask questions about your uploaded videos using AI
-        </Typography>
+      <Box sx={{ height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column', gap: 2 }}>
         
-        <Grid container spacing={3}>
-          {/* Left column - Video list */}
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Card elevation={2} sx={{ borderRadius: 2 }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <VideoFile sx={{ mr: 1, color: 'primary.main' }} />
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                    Your Videos
-                  </Typography>
-                  <Chip 
-                    label={videoIds.length} 
-                    size="small" 
-                    color="primary" 
-                    sx={{ ml: 'auto' }}
-                  />
+        {/* Video Selector */}
+        <FormControl fullWidth>
+          <InputLabel>Select Video</InputLabel>
+          <Select
+            value={selectedVideoId}
+            onChange={(e) => setSelectedVideoId(e.target.value)}
+            label="Select Video"
+            disabled={loadingVideos}
+          >
+            {loadingVideos ? (
+              <MenuItem disabled>Loading videos...</MenuItem>
+            ) : videos.length === 0 ? (
+              <MenuItem disabled>No videos available</MenuItem>
+            ) : (
+              videos.map(v => (
+                <MenuItem key={v.id} value={v.id}>
+                  {v.original_name || v.id}
+                </MenuItem>
+              ))
+            )}
+          </Select>
+        </FormControl>
+        
+        {/* Error Display */}
+        {error && (
+          <Box sx={{ p: 2, bgcolor: 'error.light', borderRadius: 1 }}>
+            <Typography color="error" variant="body2">
+              {error}
+            </Typography>
+          </Box>
+        )}
+        
+        {/* Messages Area */}
+        <Paper sx={{ flex: 1, p: 2, overflow: 'auto' }}>
+          {messages.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 8, color: 'text.secondary' }}>
+              {videos.length === 0 ? (
+                <Box>
+                  <Typography variant="h6" gutterBottom>No videos uploaded yet</Typography>
+                  <Typography variant="body2">Go to the upload page to add videos first</Typography>
                 </Box>
-                {videoIds.length === 0 ? (
-                  <Box sx={{ textAlign: 'center', py: 4 }}>
-                    <VideoFile sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
-                    <Typography variant="body2" color="text.secondary">
-                      No videos uploaded yet
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Go to the upload page to add videos
-                    </Typography>
-                  </Box>
-                ) : (
-                  <List>
-                    {videoIds.map((id, index) => (
-                      <ListItem key={id} sx={{ px: 0 }}>
-                        <Avatar sx={{ bgcolor: 'primary.main', mr: 2, width: 32, height: 32 }}>
-                          {index + 1}
-                        </Avatar>
-                        <ListItemText
-                          primary={id}
-                          secondary="Video ID"
-                          primaryTypographyProps={{ variant: 'body2', fontWeight: 'medium' }}
-                          secondaryTypographyProps={{ variant: 'caption' }}
-                        />
-                      </ListItem>
-                    ))}
-                  </List>
-                )}
-              </CardContent>
-            </Card>
-          </Grid>
+              ) : !selectedVideoId ? (
+                <Typography>Select a video and ask a question</Typography>
+              ) : (
+                <Typography>Ask a question about the selected video</Typography>
+              )}
+            </Box>
+          ) : (
+            messages.map((m, i) => (
+              <Box key={i} sx={{ mb: 2, display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                <Card sx={{ maxWidth: '70%', p: 2 }}>
+                  <Typography>{m.content}</Typography>
+                </Card>
+              </Box>
+            ))
+          )}
+          {isLoading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+              <CircularProgress size={20} />
+            </Box>
+          )}
+          <div ref={messagesEndRef} />
+        </Paper>
+        
+        {/* Context Panel - removed for now as data property is not available in this version */}
+        
+        {/* Input Area */}
+        <Box component="form" onSubmit={onSubmit} sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
+          {imagePreview && (
+            <Box sx={{ position: 'relative' }}>
+              <img src={imagePreview} alt="Preview" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 4 }} />
+              <IconButton
+                size="small"
+                sx={{ position: 'absolute', top: -8, right: -8, bgcolor: 'background.paper' }}
+                onClick={() => { setImagePreview(''); setUploadedImageId(''); }}
+              >
+                <Close fontSize="small" />
+              </IconButton>
+            </Box>
+          )}
           
-          {/* Right column - Chat placeholder */}
-          <Grid size={{ xs: 12, md: 8 }}>
-            <Paper elevation={2} sx={{ height: 600, display: 'flex', flexDirection: 'column', borderRadius: 2 }}>
-              {/* Chat header */}
-              <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center' }}>
-                <Chat sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  AI Chat
-                </Typography>
-              </Box>
-              
-              {/* Chat messages area */}
-              <Box sx={{ flex: 1, p: 4, overflow: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Chat sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
-                  <Typography variant="h6" color="text.secondary" gutterBottom>
-                    Chat interface coming soon
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    AI features will be implemented here
-                  </Typography>
-                </Box>
-              </Box>
-              
-              {/* Chat input area */}
-              <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
-                <Box component="form" sx={{ display: 'flex', gap: 1 }}>
-                  <TextField
-                    fullWidth
-                    placeholder="Ask a question about your videos..."
-                    variant="outlined"
-                    size="small"
-                    disabled
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                  />
-                  <Button
-                    variant="contained"
-                    startIcon={<Send />}
-                    disabled
-                    sx={{ borderRadius: 2, px: 3 }}
-                  >
-                    Send
-                  </Button>
-                </Box>
-              </Box>
-            </Paper>
-          </Grid>
-        </Grid>
+              <IconButton component="label" disabled={isLoading}>
+            <ImageIcon />
+            <input type="file" hidden accept="image/*" onChange={handleImageSelect} />
+          </IconButton>
+          
+          <TextField
+            fullWidth
+            multiline
+            maxRows={4}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask about the video..."
+            disabled={!selectedVideoId || isLoading}
+          />
+          
+          {isLoading ? (
+            <Button variant="outlined" startIcon={<Stop />} disabled>Stop</Button>
+          ) : (
+            <Button type="submit" variant="contained" startIcon={<Send />} disabled={!selectedVideoId || !input.trim()}>
+              Send
+            </Button>
+          )}
+        </Box>
       </Box>
     </DashboardLayout>
   );

@@ -138,3 +138,12 @@ export async function getVideoSummary(videoId: string): Promise<{ scenes: number
     transcriptChars: rows[0].transcriptchars as number
   };
 }
+
+export async function getVideoById(id: string) {
+  await ready();
+  const { rows } = await pool.query(
+    'SELECT id, original_name, status FROM videos WHERE id = $1',
+    [id]
+  );
+  return rows[0] || null;
+}
