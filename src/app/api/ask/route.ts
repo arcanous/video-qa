@@ -1,7 +1,10 @@
 import { streamText } from 'ai';
 import { openai } from '@lib/ai';
-import { embedQuery, searchTranscripts, searchFrameCaptions, formatContext, searchTranscriptsMulti, searchFrameCaptionsMulti, formatContextMulti } from '@lib/rag';
+import { embedQuery, searchTranscripts, searchFrameCaptions, formatContext, searchTranscriptsMulti, searchFrameCaptionsMulti, formatContextMulti, searchMultimodal } from '@lib/rag';
 import { getVideoById } from '@lib/db';
+import { analyzeImageWithVision } from '@lib/vision';
+import { join } from 'path';
+import { existsSync } from 'fs';
 
 export const maxDuration = 60;
 
@@ -33,31 +36,49 @@ export async function POST(req: Request) {
     const lastMessage = messages[messages.length - 1];
     const userText = lastMessage.content;
     
-    // RAG: Embed and search
-    const embedding = await embedQuery(userText);
+    // Embed user text
+    const textEmbedding = await embedQuery(userText);
     
-    let transcripts, frames, context;
-    
-    if (ids.length === 1) {
-      // Single video - use original functions
-      [transcripts, frames] = await Promise.all([
-        searchTranscripts(ids[0], embedding, 8),
-        searchFrameCaptions(ids[0], embedding, 8)
-      ]);
-      context = formatContext(transcripts, frames);
-    } else {
-      // Multiple videos - use multi functions
-      [transcripts, frames] = await Promise.all([
-        searchTranscriptsMulti(ids, embedding, 8),
-        searchFrameCaptionsMulti(ids, embedding, 8)
-      ]);
-      context = formatContextMulti(transcripts, frames);
+    // Handle image if provided
+    let imageCaption: string | null = null;
+    if (imageId) {
+      try {
+        // Try both .jpg and .png extensions
+        let imagePath = join(process.cwd(), 'data', 'ask-uploads', `${imageId}.jpg`);
+        if (!existsSync(imagePath)) {
+          imagePath = join(process.cwd(), 'data', 'ask-uploads', `${imageId}.png`);
+        }
+        
+        if (existsSync(imagePath)) {
+          console.log('Analyzing user image:', imageId);
+          const analysis = await analyzeImageWithVision(imagePath);
+          imageCaption = analysis.caption;
+          console.log('Image analysis:', imageCaption);
+        }
+      } catch (error) {
+        console.error('Image analysis failed:', error);
+        // Continue without image context
+      }
     }
+    
+    // Multimodal search
+    const { transcripts, frames } = await searchMultimodal(
+      ids,
+      textEmbedding,
+      imageCaption,
+      8
+    );
+    
+    // Format context
+    const context = ids.length === 1
+      ? formatContext(transcripts, frames)
+      : formatContextMulti(transcripts, frames, imageCaption || undefined);
     
     // Prepare messages
     const videoCount = ids.length;
     const systemPrompt = `You are a helpful assistant for instructional videos. Answer based ONLY on the provided context.
 ${videoCount > 1 ? `You are searching across ${videoCount} videos.` : ''}
+${imageCaption ? 'The user has provided an image for additional context.' : ''}
 Include timestamps like [T: 1:23-1:45] and frame references like [F: frame_id] when relevant.
 Use markdown formatting: **bold**, paragraphs, and lists.
 If the context doesn't contain the answer, say so clearly.`;

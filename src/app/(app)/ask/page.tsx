@@ -12,16 +12,26 @@ import {
 import { Send, Stop, Image as ImageIcon, Close } from '@mui/icons-material';
 
 
+interface Message {
+  id: string;
+  role: string;
+  content: string;
+  imageId?: string;
+  imagePreviewUrl?: string;
+}
+
 export default function AskPage() {
   const [videos, setVideos] = useState<Array<{id: string, original_name: string, status: string}>>([]);
   const [selectedVideoIds, setSelectedVideoIds] = useState<string[]>([]);
-  const [imagePreview, setImagePreview] = useState<string>('');
-  const [uploadedImageId, setUploadedImageId] = useState<string>('');
+  const [pendingImage, setPendingImage] = useState<{
+    id: string;
+    previewUrl: string;
+  } | null>(null);
   const [error, setError] = useState<string>('');
   const [loadingVideos, setLoadingVideos] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  const [messages, setMessages] = useState<Array<{id: string, role: string, content: string}>>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
   const [input, setInput] = useState('');
@@ -52,7 +62,7 @@ export default function AskPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    setImagePreview(URL.createObjectURL(file));
+    const previewUrl = URL.createObjectURL(file);
     
     // Upload immediately
     const formData = new FormData();
@@ -67,12 +77,12 @@ export default function AskPage() {
         throw new Error('Upload failed');
       }
       const { imageId } = await res.json();
-      setUploadedImageId(imageId);
+      setPendingImage({ id: imageId, previewUrl });
       setError('');
     } catch (error) {
       console.error('Upload failed:', error);
       setError('Failed to upload image');
-      setImagePreview('');
+      URL.revokeObjectURL(previewUrl);
     }
   };
   
@@ -80,15 +90,19 @@ export default function AskPage() {
     e.preventDefault();
     if (selectedVideoIds.length === 0 || !input.trim() || isLoading) return;
     
-    const userMessage = {
+    const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: input
+      content: input,
+      imageId: pendingImage?.id,
+      imagePreviewUrl: pendingImage?.previewUrl
     };
     
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
     setInput('');
+    const currentImageId = pendingImage?.id;
+    setPendingImage(null); // Clear pending image
     
     try {
       const response = await fetch('/api/ask', {
@@ -97,7 +111,7 @@ export default function AskPage() {
         body: JSON.stringify({
           messages: [...messages, userMessage],
           videoIds: selectedVideoIds,
-          imageId: uploadedImageId
+          imageId: currentImageId
         })
       });
       
@@ -142,8 +156,6 @@ export default function AskPage() {
       setError('Failed to send message');
     } finally {
       setIsLoading(false);
-      setImagePreview('');
-      setUploadedImageId('');
     }
   };
   
@@ -209,6 +221,19 @@ export default function AskPage() {
             messages.map((m, i) => (
               <Box key={i} sx={{ mb: 2, display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
                 <Card sx={{ maxWidth: '70%', p: 2 }}>
+                  {m.imagePreviewUrl && (
+                    <Box sx={{ mb: 2 }}>
+                      <img 
+                        src={m.imagePreviewUrl} 
+                        alt="User uploaded" 
+                        style={{ 
+                          maxWidth: '100%', 
+                          borderRadius: 8,
+                          display: 'block'
+                        }}
+                      />
+                    </Box>
+                  )}
                   <ChatMessage content={m.content} role={m.role as 'user' | 'assistant'} />
                 </Card>
               </Box>
@@ -226,13 +251,22 @@ export default function AskPage() {
         
         {/* Input Area */}
         <Box component="form" onSubmit={onSubmit} sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
-          {imagePreview && (
+          {pendingImage && (
             <Box sx={{ position: 'relative' }}>
-              <img src={imagePreview} alt="Preview" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 4 }} />
+              <img 
+                src={pendingImage.previewUrl} 
+                alt="Preview" 
+                style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 4 }} 
+              />
               <IconButton
                 size="small"
                 sx={{ position: 'absolute', top: -8, right: -8, bgcolor: 'background.paper' }}
-                onClick={() => { setImagePreview(''); setUploadedImageId(''); }}
+                onClick={() => {
+                  if (pendingImage.previewUrl) {
+                    URL.revokeObjectURL(pendingImage.previewUrl);
+                  }
+                  setPendingImage(null);
+                }}
               >
                 <Close fontSize="small" />
               </IconButton>

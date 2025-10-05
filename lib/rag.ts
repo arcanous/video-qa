@@ -102,8 +102,14 @@ export function formatContext(transcripts: Array<{text: string, t_start: number,
 }
 
 // 4b. Format context for multiple videos
-export function formatContextMulti(transcripts: Array<{text: string, t_start: number, t_end: number, video_id: string, original_name: string}>, frames: Array<{caption: string, frame_id: string, entities?: {controls?: unknown[]}, video_id: string, original_name: string}>): string {
+export function formatContextMulti(transcripts: Array<{text: string, t_start: number, t_end: number, video_id: string, original_name: string}>, frames: Array<{caption: string, frame_id: string, entities?: {controls?: unknown[]}, video_id: string, original_name: string}>, userImageCaption?: string): string {
   let context = '';
+  
+  // Add user image context at the top if provided
+  if (userImageCaption) {
+    context += '**User Provided Image Context:**\n';
+    context += `${userImageCaption}\n\n`;
+  }
   
   // Group transcripts by video
   const transcriptGroups = new Map<string, Array<{text: string, t_start: number, t_end: number}>>();
@@ -158,6 +164,46 @@ export function formatContextMulti(transcripts: Array<{text: string, t_start: nu
   });
   
   return context;
+}
+
+// 5. Multimodal search function
+export async function searchMultimodal(
+  videoIds: string[],
+  textEmbedding: number[],
+  imageCaption: string | null,
+  limit = 8
+) {
+  if (!imageCaption) {
+    // No image - use existing multi-video search
+    const [transcripts, frames] = await Promise.all([
+      searchTranscriptsMulti(videoIds, textEmbedding, limit),
+      searchFrameCaptionsMulti(videoIds, textEmbedding, limit)
+    ]);
+    return { transcripts, frames };
+  }
+  
+  // With image - search both modalities
+  const imageCaptionEmbedding = await embedQuery(imageCaption);
+  
+  const [transcripts, textFrames, imageFrames] = await Promise.all([
+    searchTranscriptsMulti(videoIds, textEmbedding, Math.ceil(limit / 2)),
+    searchFrameCaptionsMulti(videoIds, textEmbedding, Math.ceil(limit / 4)),
+    searchFrameCaptionsMulti(videoIds, imageCaptionEmbedding, Math.ceil(limit / 4))
+  ]);
+  
+  // Merge frame results, deduplicate by frame_id
+  const frameMap = new Map();
+  [...textFrames, ...imageFrames].forEach(frame => {
+    if (!frameMap.has(frame.frame_id) || frame.similarity > frameMap.get(frame.frame_id).similarity) {
+      frameMap.set(frame.frame_id, frame);
+    }
+  });
+  
+  const frames = Array.from(frameMap.values())
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, Math.ceil(limit / 2));
+  
+  return { transcripts, frames };
 }
 
 function formatTime(seconds: number): string {
