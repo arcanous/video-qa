@@ -2,17 +2,19 @@
 
 import { useState, useEffect, useRef } from 'react';
 import DashboardLayout from '../../../components/DashboardLayout';
+import ChatMessage from '../../../components/ChatMessage';
 import {
   Box, Card, TextField, Button,
   Select, MenuItem, FormControl, InputLabel,
-  IconButton, CircularProgress, Typography, Paper
+  IconButton, CircularProgress, Typography, Paper,
+  Checkbox, ListItemText, Chip
 } from '@mui/material';
 import { Send, Stop, Image as ImageIcon, Close } from '@mui/icons-material';
 
 
 export default function AskPage() {
   const [videos, setVideos] = useState<Array<{id: string, original_name: string, status: string}>>([]);
-  const [selectedVideoId, setSelectedVideoId] = useState('');
+  const [selectedVideoIds, setSelectedVideoIds] = useState<string[]>([]);
   const [imagePreview, setImagePreview] = useState<string>('');
   const [uploadedImageId, setUploadedImageId] = useState<string>('');
   const [error, setError] = useState<string>('');
@@ -28,7 +30,11 @@ export default function AskPage() {
   useEffect(() => {
     fetch('/api/videos')
       .then(r => r.json())
-      .then(setVideos)
+      .then(videoData => {
+        setVideos(videoData);
+        // Set all videos as selected by default
+        setSelectedVideoIds(videoData.map((v: any) => v.id));
+      })
       .catch(err => {
         console.error('Failed to load videos:', err);
         setError('Failed to load videos');
@@ -72,7 +78,7 @@ export default function AskPage() {
   
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedVideoId || !input.trim() || isLoading) return;
+    if (selectedVideoIds.length === 0 || !input.trim() || isLoading) return;
     
     const userMessage = {
       id: Date.now().toString(),
@@ -90,7 +96,7 @@ export default function AskPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [...messages, userMessage],
-          videoId: selectedVideoId,
+          videoIds: selectedVideoIds,
           imageId: uploadedImageId
         })
       });
@@ -147,12 +153,18 @@ export default function AskPage() {
         
         {/* Video Selector */}
         <FormControl fullWidth>
-          <InputLabel>Select Video</InputLabel>
+          <InputLabel>Select Videos</InputLabel>
           <Select
-            value={selectedVideoId}
-            onChange={(e) => setSelectedVideoId(e.target.value)}
-            label="Select Video"
+            multiple
+            value={selectedVideoIds}
+            onChange={(e) => setSelectedVideoIds(e.target.value as string[])}
+            label="Select Videos"
             disabled={loadingVideos}
+            renderValue={(selected) => {
+              if (selected.length === 0) return 'No videos selected';
+              if (selected.length === videos.length) return `All videos (${videos.length})`;
+              return `${selected.length} videos selected`;
+            }}
           >
             {loadingVideos ? (
               <MenuItem disabled>Loading videos...</MenuItem>
@@ -161,7 +173,8 @@ export default function AskPage() {
             ) : (
               videos.map(v => (
                 <MenuItem key={v.id} value={v.id}>
-                  {v.original_name || v.id}
+                  <Checkbox checked={selectedVideoIds.indexOf(v.id) > -1} />
+                  <ListItemText primary={v.original_name || v.id} />
                 </MenuItem>
               ))
             )}
@@ -186,17 +199,17 @@ export default function AskPage() {
                   <Typography variant="h6" gutterBottom>No videos uploaded yet</Typography>
                   <Typography variant="body2">Go to the upload page to add videos first</Typography>
                 </Box>
-              ) : !selectedVideoId ? (
-                <Typography>Select a video and ask a question</Typography>
+              ) : selectedVideoIds.length === 0 ? (
+                <Typography>Select videos and ask a question</Typography>
               ) : (
-                <Typography>Ask a question about the selected video</Typography>
+                <Typography>Ask a question about the selected videos</Typography>
               )}
             </Box>
           ) : (
             messages.map((m, i) => (
               <Box key={i} sx={{ mb: 2, display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
                 <Card sx={{ maxWidth: '70%', p: 2 }}>
-                  <Typography>{m.content}</Typography>
+                  <ChatMessage content={m.content} role={m.role as 'user' | 'assistant'} />
                 </Card>
               </Box>
             ))
@@ -237,14 +250,14 @@ export default function AskPage() {
             maxRows={4}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about the video..."
-            disabled={!selectedVideoId || isLoading}
+            placeholder="Ask about the videos..."
+            disabled={selectedVideoIds.length === 0 || isLoading}
           />
           
           {isLoading ? (
             <Button variant="outlined" startIcon={<Stop />} disabled>Stop</Button>
           ) : (
-            <Button type="submit" variant="contained" startIcon={<Send />} disabled={!selectedVideoId || !input.trim()}>
+            <Button type="submit" variant="contained" startIcon={<Send />} disabled={selectedVideoIds.length === 0 || !input.trim()}>
               Send
             </Button>
           )}

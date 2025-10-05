@@ -25,6 +25,21 @@ export async function searchTranscripts(videoId: string, embedding: number[], li
   return rows;
 }
 
+// 2b. Search transcripts across multiple videos
+export async function searchTranscriptsMulti(videoIds: string[], embedding: number[], limit = 8) {
+  const { rows } = await pool.query(
+    `SELECT ts.id, ts.text, ts.t_start, ts.t_end, ts.video_id, v.original_name,
+            1 - (ts.embedding <=> $1::vector) AS similarity
+     FROM transcript_segments ts
+     JOIN videos v ON ts.video_id = v.id
+     WHERE ts.video_id = ANY($2)
+     ORDER BY ts.embedding <=> $1::vector
+     LIMIT $3`,
+    [JSON.stringify(embedding), videoIds, limit]
+  );
+  return rows;
+}
+
 // 3. Search frame captions by vector similarity
 export async function searchFrameCaptions(videoId: string, embedding: number[], limit = 8) {
   const { rows } = await pool.query(
@@ -38,6 +53,24 @@ export async function searchFrameCaptions(videoId: string, embedding: number[], 
      ORDER BY fc.embedding <=> $1::vector
      LIMIT $3`,
     [JSON.stringify(embedding), videoId, limit]
+  );
+  return rows;
+}
+
+// 3b. Search frame captions across multiple videos
+export async function searchFrameCaptionsMulti(videoIds: string[], embedding: number[], limit = 8) {
+  const { rows } = await pool.query(
+    `SELECT fc.id, fc.frame_id, fc.caption, fc.entities,
+            f.path, f.t_frame, s.video_id, v.original_name,
+            1 - (fc.embedding <=> $1::vector) AS similarity
+     FROM frame_captions fc
+     JOIN frames f ON fc.frame_id = f.id
+     JOIN scenes s ON f.scene_id = s.id
+     JOIN videos v ON s.video_id = v.id
+     WHERE s.video_id = ANY($2)
+     ORDER BY fc.embedding <=> $1::vector
+     LIMIT $3`,
+    [JSON.stringify(embedding), videoIds, limit]
   );
   return rows;
 }
@@ -64,6 +97,65 @@ export function formatContext(transcripts: Array<{text: string, t_start: number,
       }
     });
   }
+  
+  return context;
+}
+
+// 4b. Format context for multiple videos
+export function formatContextMulti(transcripts: Array<{text: string, t_start: number, t_end: number, video_id: string, original_name: string}>, frames: Array<{caption: string, frame_id: string, entities?: {controls?: unknown[]}, video_id: string, original_name: string}>): string {
+  let context = '';
+  
+  // Group transcripts by video
+  const transcriptGroups = new Map<string, Array<{text: string, t_start: number, t_end: number}>>();
+  transcripts.forEach(t => {
+    if (!transcriptGroups.has(t.video_id)) {
+      transcriptGroups.set(t.video_id, []);
+    }
+    transcriptGroups.get(t.video_id)!.push({ text: t.text, t_start: t.t_start, t_end: t.t_end });
+  });
+  
+  // Group frames by video
+  const frameGroups = new Map<string, Array<{caption: string, frame_id: string, entities?: {controls?: unknown[]}}>>();
+  frames.forEach(f => {
+    if (!frameGroups.has(f.video_id)) {
+      frameGroups.set(f.video_id, []);
+    }
+    frameGroups.get(f.video_id)!.push({ caption: f.caption, frame_id: f.frame_id, entities: f.entities });
+  });
+  
+  // Format each video's content
+  const allVideoIds = new Set([...transcriptGroups.keys(), ...frameGroups.keys()]);
+  
+  allVideoIds.forEach(videoId => {
+    const videoName = transcripts.find(t => t.video_id === videoId)?.original_name || 
+                     frames.find(f => f.video_id === videoId)?.original_name || 
+                     videoId;
+    
+    context += `**Video: "${videoName}"**\n`;
+    
+    const videoTranscripts = transcriptGroups.get(videoId) || [];
+    if (videoTranscripts.length > 0) {
+      context += 'Transcript:\n';
+      videoTranscripts.forEach(t => {
+        const start = formatTime(t.t_start);
+        const end = formatTime(t.t_end);
+        context += `[T: ${start}-${end}] ${t.text}\n`;
+      });
+    }
+    
+    const videoFrames = frameGroups.get(videoId) || [];
+    if (videoFrames.length > 0) {
+      context += '\nFrames:\n';
+      videoFrames.forEach(f => {
+        context += `[F: ${f.frame_id}] ${f.caption}\n`;
+        if (f.entities?.controls && f.entities.controls.length > 0) {
+          context += `  Controls: ${JSON.stringify(f.entities.controls)}\n`;
+        }
+      });
+    }
+    
+    context += '\n';
+  });
   
   return context;
 }
