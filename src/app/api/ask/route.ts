@@ -77,10 +77,18 @@ export async function POST(req: Request) {
     // Prepare messages
     const videoCount = ids.length;
     const systemPrompt = `You are a helpful assistant for instructional videos. Answer based ONLY on the provided context.
-${videoCount > 1 ? `You are searching across ${videoCount} videos.` : ''}
+
+${videoCount > 1 ? `You are searching across ${videoCount} videos. Structure your answer by video when relevant.` : ''}
 ${imageCaption ? 'The user has provided an image for additional context.' : ''}
-Include timestamps like [T: 1:23-1:45] and frame references like [F: frame_id] when relevant.
-Use markdown formatting: **bold**, paragraphs, and lists.
+
+FORMATTING RULES:
+- Use clear section headers with ## for main topics
+- Reference timestamps as [T: 1:23-1:45] (they will be styled automatically)
+- Reference frames as [F: frame_id] (images will be displayed automatically)
+- When multiple videos, use ### Video: "name" to separate content
+- Use numbered lists for step-by-step instructions
+- Use **bold** for emphasis
+
 If the context doesn't contain the answer, say so clearly.`;
 
     const promptMessages: Array<{role: 'user' | 'assistant', content: string}> = [];
