@@ -149,10 +149,12 @@ export default function AskPage() {
           const chunk = decoder.decode(value);
           setMessages(prev => {
             const newMessages = [...prev];
-            const lastMessage = newMessages[newMessages.length - 1];
-            if (lastMessage.role === 'assistant') {
-              lastMessage.content += chunk;
-            }
+            const lastIndex = newMessages.length - 1;
+            // Create NEW object with updated content
+            newMessages[lastIndex] = {
+              ...newMessages[lastIndex],
+              content: newMessages[lastIndex].content + chunk
+            };
             return newMessages;
           });
         }
