@@ -29,7 +29,7 @@ services:
       WORKER_MAX_ATTEMPTS: "3"
       LOG_LEVEL: INFO
     volumes:
-      - ./data/worker:/app/data
+      - ./data:/app/data
     depends_on:
       postgres:
         condition: service_healthy
