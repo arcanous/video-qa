@@ -6,9 +6,9 @@ Deep dive into the Video QA Platform system design, component interactions, and 
 
 The Video QA Platform is a distributed system consisting of three main components:
 
-1. **Next.js Frontend** (`video-qa`) - User interface and API layer
-2. **Python Worker** (`video-worker`) - Video processing pipeline
-3. **PostgreSQL Database** - Shared data store with vector embeddings
+1. **Next.js Frontend** (`video-qa`) - User interface, authentication, and API layer
+2. **Python Worker** (`video-qa-worker`) - Video processing pipeline
+3. **PostgreSQL Database** - Shared data store with vector embeddings and RAG system
 
 ## Component Architecture
 
@@ -16,7 +16,7 @@ The Video QA Platform is a distributed system consisting of three main component
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Browser Layer                            │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐            │
-│  │   Upload    │  │   Status    │  │    Query    │            │
+│  │   Login     │  │   Upload    │  │    Ask      │            │
 │  │   Page      │  │   Page      │  │   Page      │            │
 │  └─────────────┘  └─────────────┘  └─────────────┘            │
 └─────────────────────────────────────────────────────────────────┘
@@ -25,13 +25,13 @@ The Video QA Platform is a distributed system consisting of three main component
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Next.js Application Layer                   │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐            │
-│  │   Upload   │  │   Status    │  │   Summary   │            │
-│  │   API      │  │   API       │  │   API       │            │
+│  │   Auth      │  │   Upload    │  │    Ask      │            │
+│  │   API       │  │   API       │  │   API       │            │
 │  └─────────────┘  └─────────────┘  └─────────────┘            │
-│  ┌─────────────┐  ┌─────────────┐                             │
-│  │   File     │  │   Database  │                             │
-│  │   Utils    │  │   Utils     │                             │
-│  └─────────────┘  └─────────────┘                             │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐            │
+│  │   RAG       │  │   Vision    │  │   Database  │            │
+│  │   System    │  │   Analysis  │  │   Utils     │            │
+│  └─────────────┘  └─────────────┘  └─────────────┘            │
 └─────────────────────────────────────────────────────────────────┘
                                 │
                                 ▼
@@ -55,6 +55,15 @@ The Video QA Platform is a distributed system consisting of three main component
 
 ## Data Flow Architecture
 
+### Authentication Flow
+```
+User Login → Server Action → Cookie Set → Middleware Check → Protected Routes
+     │            │             │              │                │
+     │            │             │              │                │
+     ▼            ▼             ▼              ▼                ▼
+[Browser] → [POST /login] → [demo-auth cookie] → [Middleware] → [Upload/Ask pages]
+```
+
 ### Upload Flow
 ```
 User Upload → Next.js API → File Storage → Database → Job Queue
@@ -62,6 +71,15 @@ User Upload → Next.js API → File Storage → Database → Job Queue
      │              │            │           │          │
      ▼              ▼            ▼           ▼          ▼
 [Browser] → [POST /api/upload] → [data/uploads/] → [videos table] → [jobs table]
+```
+
+### Chat Flow
+```
+User Question → RAG Search → Vector Similarity → Context Assembly → AI Response
+     │              │              │                │                │
+     │              │              │                │                │
+     ▼              ▼              ▼                ▼                ▼
+[Browser] → [POST /api/ask] → [Vector Search] → [Context Format] → [Streaming Response]
 ```
 
 ### Processing Flow
@@ -154,9 +172,14 @@ data/
 
 | Method | Endpoint | Purpose | Request | Response |
 |--------|----------|---------|---------|----------|
+| POST | `/login` | Authentication | `{ username, password }` | Redirect |
 | POST | `/api/upload` | Upload video | `FormData` | `{ id: string }` |
+| GET | `/api/videos` | List videos | - | `[{ id, original_name, status }]` |
 | GET | `/api/videos/[id]/status` | Get status | - | `{ status, attempts, updatedAt }` |
 | GET | `/api/videos/[id]/summary` | Get results | - | `{ scenes, frames, transcriptSegments, transcriptChars }` |
+| POST | `/api/ask` | Chat interface | `{ messages, videoIds, imageId }` | Streaming text |
+| POST | `/api/ask/upload-image` | Upload image | `FormData` | `{ imageId, mediaType, path }` |
+| GET | `/api/frames/[videoId]/[frameNum]` | Serve frame | - | JPEG image |
 
 ### Error Handling
 
@@ -225,6 +248,52 @@ The worker is **tightly coupled** to the database schema:
 - **Writes**: All processing tables (scenes, frames, transcripts, captions)
 - **Updates**: Video status, normalized path, duration
 - **Dependencies**: Specific column names, ID patterns, table relationships
+
+## Frontend Architecture
+
+### Next.js App Router Structure
+```
+src/app/
+├── (auth)/              # Authentication routes
+│   └── login/           # Login page with server actions
+├── (app)/               # Protected application routes
+│   ├── upload/          # Video upload page
+│   └── ask/             # Chat interface with RAG
+├── api/                 # API routes
+│   ├── upload/          # Upload endpoint
+│   ├── ask/             # Chat and image upload
+│   ├── videos/          # Video management
+│   └── frames/          # Frame image serving
+├── components/          # React components
+│   ├── DashboardLayout  # Main layout with navigation
+│   ├── ChatMessage     # Message rendering with special parsing
+│   └── ThemeProvider    # Material-UI theming
+├── globals.css          # Global styles
+├── layout.tsx           # Root layout with MUI
+└── page.tsx             # Home page (redirects)
+```
+
+### Component Design
+- **Server Components**: Default for better performance
+- **Client Components**: Only when interactivity needed (upload, chat)
+- **Shared Components**: Reusable UI components with Material-UI
+- **API Routes**: Server-side logic, RAG system, and database access
+- **Authentication**: Middleware-based route protection
+
+### RAG System Integration
+The frontend integrates with a sophisticated RAG (Retrieval Augmented Generation) system:
+
+- **Vector Search**: Semantic similarity across transcripts and frame captions
+- **Multimodal Queries**: Text + image search capabilities
+- **Context Assembly**: Intelligent context formatting for AI responses
+- **Streaming Responses**: Real-time AI chat with frame references
+
+### Chat Interface Features
+- **Message Parsing**: Special handling for `[T: start-end]` and `[F: frame_id]` references
+- **Frame Display**: Automatic frame image loading and display
+- **Timestamp Links**: Clickable timecode references
+- **Video Selection**: Multi-video query support
+- **Image Upload**: Multimodal search with user-uploaded images
 
 ## Security Considerations
 
@@ -299,10 +368,11 @@ The worker is **tightly coupled** to the database schema:
 
 ### Planned Features
 
-- **Query Interface**: AI-powered video search
+- **Advanced RAG**: More sophisticated context retrieval
 - **Batch Processing**: Multiple video uploads
 - **Progress Tracking**: Real-time processing updates
 - **Export Options**: Download processed data
+- **User Management**: Multi-user authentication system
 
 ### Technical Improvements
 

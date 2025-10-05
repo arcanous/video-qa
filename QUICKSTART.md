@@ -24,7 +24,7 @@ cd video-qa
 # Create environment file
 cat > .env.local << EOF
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/videoqa
-OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_KEY=your_openai_api_key_here
 EOF
 ```
 
@@ -54,10 +54,11 @@ pnpm install
 pnpm dev
 ```
 
-### 6. Verify Setup
+### 6. Login and Verify Setup
 1. Open http://localhost:3000
-2. You should see the upload interface
-3. Check worker health: http://localhost:8000/healthz (if WORKER_DEV_HTTP=true)
+2. Login with demo credentials: `demo` / `demo123`
+3. You should see the upload interface
+4. Check worker health: http://localhost:8000/healthz (if WORKER_DEV_HTTP=true)
 
 ## First Upload Walkthrough
 
@@ -72,13 +73,13 @@ pnpm dev
 2. Watch the logs: `tail -f data/worker/log.log`
 3. Processing typically takes 2-5 minutes for a 5-minute video
 
-### 3. View Results
-1. Check summary: `GET /api/videos/{id}/summary`
-2. Results include:
-   - Number of scenes detected
-   - Number of frames extracted
-   - Transcript segments
-   - Total transcript characters
+### 3. Ask Questions About Your Video
+1. Navigate to the "Ask Questions" page
+2. Select your processed video from the dropdown
+3. Type a question like "What does this video show?"
+4. Watch the AI analyze your video and provide detailed answers
+5. Try uploading an image to ask multimodal questions
+6. Reference specific timestamps and frames in your questions
 
 ## Verification Steps
 
@@ -142,7 +143,7 @@ docker-compose restart postgres
 **Solution**: Verify API key is correct and has credits
 ```bash
 # Test API key
-curl -H "Authorization: Bearer $OPENAI_API_KEY" \
+curl -H "Authorization: Bearer $OPENAI_KEY" \
   https://api.openai.com/v1/models
 ```
 
@@ -160,9 +161,10 @@ pnpm dev -- -p 3001
 
 - [ ] Read [ARCHITECTURE.md](./ARCHITECTURE.md) for system design details
 - [ ] Explore [../video-qa-worker/README.md](../video-qa-worker/README.md) for worker documentation
-- [ ] Check [../video-qa-worker/TROUBLESHOOTING.md](../video-qa-worker/TROUBLESHOOTING.md) for common issues
 - [ ] Try uploading different video types and sizes
+- [ ] Experiment with multimodal questions (text + images)
 - [ ] Monitor processing logs to understand the pipeline
+- [ ] Test the chat interface with various question types
 
 ## Getting Help
 
@@ -171,5 +173,5 @@ If you encounter issues:
 1. **Check logs first**: `docker-compose logs worker`
 2. **Verify environment**: Ensure all required variables are set
 3. **Check file permissions**: Ensure data directory is writable
-4. **Review troubleshooting guides**: See TROUBLESHOOTING.md files
+4. **Test authentication**: Try logging in with demo/demo123
 5. **Check GitHub issues**: Look for similar problems and solutions

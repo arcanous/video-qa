@@ -1,6 +1,15 @@
 # Video QA Platform
 
-A video processing platform that allows users to upload instructional videos and query them using AI. The system consists of a Next.js frontend and a Python worker that processes videos through a complete AI pipeline.
+An AI-powered video processing platform that allows users to upload instructional videos and ask questions about them using natural language. Features multimodal search across video content, frame analysis, and intelligent chat interface.
+
+## Features
+
+- **Video Upload**: Drag-and-drop interface with real-time processing status
+- **AI Chat Interface**: Ask questions about uploaded videos with streaming responses
+- **Multimodal Search**: Search across transcripts, frames, and uploaded images
+- **Frame Analysis**: Automatic scene detection and frame extraction with AI vision
+- **Authentication**: Simple demo authentication system
+- **Real-time Processing**: Live status updates during video processing
 
 ## System Architecture
 
@@ -37,8 +46,10 @@ git clone <video-worker-repo>
 
 # Create environment file
 cd video-qa
-cp .env.example .env.local
-# Edit .env.local with your DATABASE_URL and OPENAI_API_KEY
+cat > .env.local << EOF
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/videoqa
+OPENAI_KEY=your_openai_api_key_here
+EOF
 ```
 
 ### 2. Build and Start Services
@@ -56,12 +67,12 @@ pnpm install
 pnpm dev
 ```
 
-### 3. Upload Your First Video
+### 3. Login and Upload
 1. Open http://localhost:3000
-2. Click "Upload Video"
-3. Select a video file (max 500MB)
+2. Login with demo credentials: `demo` / `demo123`
+3. Upload a video file (max 500MB)
 4. Monitor processing status
-5. View results when complete
+5. Ask questions about your video
 
 ## How It Works
 
@@ -116,24 +127,34 @@ videos (1) ──→ (many) transcript_segments
 
 ## API Endpoints
 
+### Authentication
+- **POST** `/login` - Login with demo credentials
+- **Response**: Redirect to upload page
+
 ### Upload
 - **POST** `/api/upload` - Upload video file
 - **Response**: `{ id: string }`
 
-### Status
+### Video Management
+- **GET** `/api/videos` - List all videos
 - **GET** `/api/videos/[id]/status` - Get processing status
-- **Response**: `{ status: string, attempts: number, updatedAt: string }`
-
-### Summary
 - **GET** `/api/videos/[id]/summary` - Get processing results
-- **Response**: `{ scenes: number, frames: number, transcriptSegments: number, transcriptChars: number }`
+
+### Chat Interface
+- **POST** `/api/ask` - Ask questions about videos
+- **POST** `/api/ask/upload-image` - Upload image for multimodal search
+- **Response**: Streaming text response
+
+### Frame Images
+- **GET** `/api/frames/[videoId]/[frameNum]` - Serve frame images
+- **Response**: JPEG image with caching headers
 
 ## Environment Variables
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `DATABASE_URL` | ✅ | - | PostgreSQL connection string |
-| `OPENAI_API_KEY` | ✅ | - | OpenAI API key for AI processing |
+| `OPENAI_KEY` | ✅ | - | OpenAI API key for AI processing |
 | `NODE_ENV` | ❌ | development | Environment mode |
 
 ## File Storage Strategy
@@ -147,11 +168,12 @@ videos (1) ──→ (many) transcript_segments
 ```
 data/
 ├── uploads/           # Original uploaded videos
-├── processed/        # Normalized videos and audio
+├── processed/         # Normalized videos and audio
 │   └── {video_id}/
 ├── frames/           # Extracted frame images
 │   └── {video_id}/
 ├── subs/             # SRT subtitle files
+├── ask-uploads/      # User-uploaded images for chat
 └── worker/           # Worker logs
     └── log.log
 ```
@@ -163,23 +185,34 @@ data/
 video-qa/
 ├── src/app/api/          # API routes
 │   ├── upload/           # Upload endpoint
-│   └── videos/[id]/      # Video status/summary
-├── src/app/(app)/        # Main app pages
+│   ├── ask/              # Chat interface
+│   ├── videos/           # Video management
+│   └── frames/           # Frame image serving
+├── src/app/(app)/        # Protected pages
 │   ├── upload/           # Upload UI
-│   └── ask/              # Query interface (future)
+│   └── ask/              # Chat interface
+├── src/app/(auth)/       # Authentication
+│   └── login/            # Login page
+├── src/components/       # React components
+│   ├── DashboardLayout   # Main layout
+│   ├── ChatMessage      # Message rendering
+│   └── ThemeProvider    # MUI theming
 ├── lib/                  # Shared utilities
 │   ├── db.ts            # Database functions
+│   ├── rag.ts           # RAG system
+│   ├── vision.ts        # Vision analysis
 │   └── file.ts          # File operations
-└── docker/              # Database schema
+└── postgres/            # Database schema
     └── initdb/
 ```
 
 ### Key Features
+- **Authentication**: Demo login system with cookie-based sessions
+- **Multimodal Search**: RAG system with vector embeddings and image analysis
+- **Real-time Chat**: Streaming AI responses with frame and timestamp references
+- **Material-UI**: Modern, responsive interface with custom theming
 - **Idempotent Operations**: Safe to re-run processing
-- **Path Safety**: Relative paths prevent absolute path issues
-- **Status Tracking**: Real-time processing status
-- **Error Handling**: Comprehensive error logging
-- **Health Monitoring**: Worker health endpoints
+- **Error Handling**: Comprehensive error logging and user feedback
 
 ## Troubleshooting
 
