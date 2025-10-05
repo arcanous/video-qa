@@ -32,7 +32,7 @@ EOF
 ```bash
 # Build the worker Docker image
 cd ../video-qa-worker
-docker build -t videoqa-worker:0.0.17 .
+docker build -t videoqa-worker:0.0.19 .
 cd ../video-qa
 ```
 

@@ -45,7 +45,7 @@ cp .env.example .env.local
 ```bash
 # Build worker image
 cd ../video-qa-worker
-docker build -t videoqa-worker:0.0.17 .
+docker build -t videoqa-worker:0.0.19 .
 
 # Start database and worker
 cd ../video-qa
