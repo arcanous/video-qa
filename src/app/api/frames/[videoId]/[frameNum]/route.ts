@@ -4,10 +4,10 @@ import { join } from 'path';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { videoId: string; frameNum: string } }
+  { params }: { params: Promise<{ videoId: string; frameNum: string }> }
 ) {
   try {
-    const { videoId, frameNum } = params;
+    const { videoId, frameNum } = await params;
     
     // Validate frame number is numeric
     const frameNumber = parseInt(frameNum, 10);
