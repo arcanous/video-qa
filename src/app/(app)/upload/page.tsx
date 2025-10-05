@@ -240,6 +240,7 @@ export default function UploadPage() {
                         component="label"
                         startIcon={<Upload />}
                         disabled={uploading}
+                        onClick={(e) => e.stopPropagation()}
                         sx={{ 
                           borderRadius: 2,
                           textTransform: 'none',

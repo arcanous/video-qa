@@ -212,21 +212,20 @@ export default function AskPage() {
                   <MenuItem disabled>No videos available</MenuItem>
                 ) : (
                   videos.map((v, index) => (
-                    <Fade in timeout={300 + index * 100} key={v.id}>
-                      <MenuItem 
-                        value={v.id}
-                        sx={{
-                          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                          '&:hover': {
-                            backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                            transform: 'translateX(4px)',
-                          },
-                        }}
-                      >
-                        <Checkbox checked={selectedVideoIds.indexOf(v.id) > -1} />
-                        <ListItemText primary={v.original_name || v.id} />
-                      </MenuItem>
-                    </Fade>
+                    <MenuItem 
+                      key={v.id}
+                      value={v.id}
+                      sx={{
+                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                        '&:hover': {
+                          backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                          transform: 'translateX(4px)',
+                        },
+                      }}
+                    >
+                      <Checkbox checked={selectedVideoIds.indexOf(v.id) > -1} />
+                      <ListItemText primary={v.original_name || v.id} />
+                    </MenuItem>
                   ))
                 )}
               </Select>
