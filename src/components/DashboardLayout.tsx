@@ -21,6 +21,10 @@ import {
   Divider,
   useTheme,
   useMediaQuery,
+  Fade,
+  Slide,
+  Grow,
+  Badge,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -87,37 +91,78 @@ export default function DashboardLayout({ children, currentPage }: DashboardLayo
   const drawer = (
     <Box>
       <Toolbar>
-        <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 'bold' }}>
+        <Typography 
+          variant="h6" 
+          noWrap 
+          component="div" 
+          sx={{ 
+            fontWeight: 'bold',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+          }}
+        >
           Video QA
         </Typography>
       </Toolbar>
       <Divider />
       <List>
-        {menuItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
-            <ListItemButton
-              onClick={() => handleNavigation(item.path)}
-              selected={item.active}
-              sx={{
-                '&.Mui-selected': {
-                  backgroundColor: theme.palette.primary.main,
-                  color: 'white',
-                  '&:hover': {
-                    backgroundColor: theme.palette.primary.dark,
-                  },
-                  '& .MuiListItemIcon-root': {
+        {menuItems.map((item, index) => (
+          <Fade in timeout={300 + index * 100} key={item.text}>
+            <ListItem disablePadding>
+              <ListItemButton
+                onClick={() => handleNavigation(item.path)}
+                selected={item.active}
+                sx={{
+                  mx: 1,
+                  my: 0.5,
+                  borderRadius: 2,
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  '&.Mui-selected': {
+                    backgroundColor: theme.palette.primary.main,
                     color: 'white',
+                    boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
+                    '&:hover': {
+                      backgroundColor: theme.palette.primary.dark,
+                      transform: 'translateX(4px)',
+                    },
+                    '& .MuiListItemIcon-root': {
+                      color: 'white',
+                      transform: 'scale(1.1)',
+                    },
+                    '& .MuiListItemText-primary': {
+                      fontWeight: 600,
+                    },
                   },
-                },
-                '&:hover': {
-                  backgroundColor: theme.palette.action.hover,
-                },
-              }}
-            >
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.text} />
-            </ListItemButton>
-          </ListItem>
+                  '&:hover': {
+                    backgroundColor: theme.palette.action.hover,
+                    transform: 'translateX(4px)',
+                    '& .MuiListItemIcon-root': {
+                      transform: 'scale(1.1)',
+                    },
+                  },
+                }}
+              >
+                <ListItemIcon 
+                  sx={{ 
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    minWidth: 40,
+                  }}
+                >
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText 
+                  primary={item.text} 
+                  sx={{
+                    '& .MuiListItemText-primary': {
+                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    },
+                  }}
+                />
+              </ListItemButton>
+            </ListItem>
+          </Fade>
         ))}
       </List>
     </Box>
@@ -130,9 +175,12 @@ export default function DashboardLayout({ children, currentPage }: DashboardLayo
         sx={{
           width: { md: `calc(100% - ${drawerWidth}px)` },
           ml: { md: `${drawerWidth}px` },
-          backgroundColor: 'white',
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(10px)',
           color: 'text.primary',
           boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+          borderBottom: '1px solid rgba(0,0,0,0.05)',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
         <Toolbar>
@@ -141,11 +189,31 @@ export default function DashboardLayout({ children, currentPage }: DashboardLayo
             aria-label="open drawer"
             edge="start"
             onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { md: 'none' } }}
+            sx={{ 
+              mr: 2, 
+              display: { md: 'none' },
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              '&:hover': {
+                transform: 'scale(1.1)',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+              },
+            }}
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+          <Typography 
+            variant="h6" 
+            noWrap 
+            component="div" 
+            sx={{ 
+              flexGrow: 1,
+              fontWeight: 600,
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
             {currentPage === 'upload' ? 'Upload Videos' : 'Ask Questions'}
           </Typography>
           <IconButton
@@ -156,8 +224,26 @@ export default function DashboardLayout({ children, currentPage }: DashboardLayo
             aria-haspopup="true"
             onClick={handleProfileMenuOpen}
             color="inherit"
+            sx={{
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              '&:hover': {
+                transform: 'scale(1.1)',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+              },
+            }}
           >
-            <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
+            <Avatar 
+              sx={{ 
+                width: 32, 
+                height: 32, 
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                '&:hover': {
+                  transform: 'scale(1.1)',
+                  boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
+                },
+              }}
+            >
               <AccountCircle />
             </Avatar>
           </IconButton>
@@ -174,9 +260,26 @@ export default function DashboardLayout({ children, currentPage }: DashboardLayo
               vertical: 'top',
               horizontal: 'right',
             }}
+            TransitionComponent={Grow}
+            sx={{
+              '& .MuiPaper-root': {
+                borderRadius: 2,
+                boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
+                border: '1px solid rgba(0, 0, 0, 0.05)',
+              },
+            }}
           >
-            <MenuItem onClick={handleLogout}>
-              <ListItemIcon>
+            <MenuItem 
+              onClick={handleLogout}
+              sx={{
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                '&:hover': {
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                  transform: 'translateX(4px)',
+                },
+              }}
+            >
+              <ListItemIcon sx={{ color: 'error.main' }}>
                 <Logout fontSize="small" />
               </ListItemIcon>
               <ListItemText>Logout</ListItemText>
@@ -223,10 +326,15 @@ export default function DashboardLayout({ children, currentPage }: DashboardLayo
           mt: '64px',
           backgroundColor: '#fafafa',
           minHeight: 'calc(100vh - 64px)',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
         <Container maxWidth="lg">
-          {children}
+          <Fade in timeout={400}>
+            <Box>
+              {children}
+            </Box>
+          </Fade>
         </Container>
       </Box>
     </Box>

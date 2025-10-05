@@ -7,9 +7,10 @@ import {
   Box, Card, TextField, Button,
   Select, MenuItem, FormControl, InputLabel,
   IconButton, CircularProgress, Typography, Paper,
-  Checkbox, ListItemText, Chip
+  Checkbox, ListItemText, Chip, Fade, Slide, Grow,
+  Zoom, Skeleton, Avatar
 } from '@mui/material';
-import { Send, Stop, Image as ImageIcon, Close } from '@mui/icons-material';
+import { Send, Stop, Image as ImageIcon, Close, SmartToy, Person } from '@mui/icons-material';
 
 
 interface Message {
@@ -33,8 +34,13 @@ export default function AskPage() {
   
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
   
   const [input, setInput] = useState('');
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   // Load videos
   useEffect(() => {
@@ -161,52 +167,104 @@ export default function AskPage() {
   
   return (
     <DashboardLayout currentPage="ask">
-      <Box sx={{ height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Fade in={mounted} timeout={600}>
+        <Box sx={{ height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          
+          {/* Video Selector */}
+          <Slide direction="down" in={mounted} timeout={400}>
+            <FormControl fullWidth>
+              <InputLabel>Select Videos</InputLabel>
+              <Select
+                multiple
+                value={selectedVideoIds}
+                onChange={(e) => setSelectedVideoIds(e.target.value as string[])}
+                label="Select Videos"
+                disabled={loadingVideos}
+                renderValue={(selected) => {
+                  if (selected.length === 0) return 'No videos selected';
+                  if (selected.length === videos.length) return `All videos (${videos.length})`;
+                  return `${selected.length} videos selected`;
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    '&:hover': {
+                      transform: 'translateY(-1px)',
+                      boxShadow: '0 4px 12px rgba(99, 102, 241, 0.15)',
+                    },
+                    '&.Mui-focused': {
+                      transform: 'translateY(-1px)',
+                      boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)',
+                    },
+                  },
+                }}
+              >
+                {loadingVideos ? (
+                  <MenuItem disabled>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <CircularProgress size={16} />
+                      Loading videos...
+                    </Box>
+                  </MenuItem>
+                ) : videos.length === 0 ? (
+                  <MenuItem disabled>No videos available</MenuItem>
+                ) : (
+                  videos.map((v, index) => (
+                    <Fade in timeout={300 + index * 100} key={v.id}>
+                      <MenuItem 
+                        value={v.id}
+                        sx={{
+                          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                          '&:hover': {
+                            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                            transform: 'translateX(4px)',
+                          },
+                        }}
+                      >
+                        <Checkbox checked={selectedVideoIds.indexOf(v.id) > -1} />
+                        <ListItemText primary={v.original_name || v.id} />
+                      </MenuItem>
+                    </Fade>
+                  ))
+                )}
+              </Select>
+            </FormControl>
+          </Slide>
         
-        {/* Video Selector */}
-        <FormControl fullWidth>
-          <InputLabel>Select Videos</InputLabel>
-          <Select
-            multiple
-            value={selectedVideoIds}
-            onChange={(e) => setSelectedVideoIds(e.target.value as string[])}
-            label="Select Videos"
-            disabled={loadingVideos}
-            renderValue={(selected) => {
-              if (selected.length === 0) return 'No videos selected';
-              if (selected.length === videos.length) return `All videos (${videos.length})`;
-              return `${selected.length} videos selected`;
-            }}
-          >
-            {loadingVideos ? (
-              <MenuItem disabled>Loading videos...</MenuItem>
-            ) : videos.length === 0 ? (
-              <MenuItem disabled>No videos available</MenuItem>
-            ) : (
-              videos.map(v => (
-                <MenuItem key={v.id} value={v.id}>
-                  <Checkbox checked={selectedVideoIds.indexOf(v.id) > -1} />
-                  <ListItemText primary={v.original_name || v.id} />
-                </MenuItem>
-              ))
-            )}
-          </Select>
-        </FormControl>
-        
-        {/* Error Display */}
-        {error && (
-          <Box sx={{ p: 2, bgcolor: 'error.light', borderRadius: 1 }}>
-            <Typography color="error" variant="body2">
-              {error}
-            </Typography>
-          </Box>
-        )}
-        
-        {/* Messages Area */}
-        <Paper sx={{ flex: 1, p: 2, overflow: 'auto' }}>
-          {messages.length === 0 ? (
-            <Box sx={{ textAlign: 'center', py: 8, color: 'text.secondary' }}>
-              {videos.length === 0 ? (
+          {/* Error Display */}
+          {error && (
+            <Fade in timeout={300}>
+              <Box sx={{ 
+                p: 2, 
+                bgcolor: 'error.light', 
+                borderRadius: 2,
+                border: '1px solid rgba(239, 68, 68, 0.2)',
+                animation: 'shake 0.5s ease-in-out',
+              }}>
+                <Typography color="error" variant="body2">
+                  {error}
+                </Typography>
+              </Box>
+            </Fade>
+          )}
+          
+          {/* Messages Area */}
+          <Slide direction="up" in={mounted} timeout={600}>
+            <Paper 
+              sx={{ 
+                flex: 1, 
+                p: 2, 
+                overflow: 'auto',
+                borderRadius: 3,
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                '&:hover': {
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                },
+              }}
+            >
+              {messages.length === 0 ? (
+                <Box sx={{ textAlign: 'center', py: 8, color: 'text.secondary' }}>
+                  {videos.length === 0 ? (
                 <Box>
                   <Typography variant="h6" gutterBottom>No videos uploaded yet</Typography>
                   <Typography variant="body2">Go to the upload page to add videos first</Typography>
@@ -219,84 +277,233 @@ export default function AskPage() {
             </Box>
           ) : (
             messages.map((m, i) => (
-              <Box key={i} sx={{ mb: 2, display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
-                <Card sx={{ maxWidth: '70%', p: 2 }}>
-                  {m.imagePreviewUrl && (
-                    <Box sx={{ mb: 2 }}>
-                      <img 
-                        src={m.imagePreviewUrl} 
-                        alt="User uploaded" 
-                        style={{ 
-                          maxWidth: '100%', 
-                          borderRadius: 8,
-                          display: 'block'
-                        }}
-                      />
-                    </Box>
+              <Fade in timeout={300 + i * 100} key={i}>
+                <Box sx={{ 
+                  mb: 2, 
+                  display: 'flex', 
+                  justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start',
+                  alignItems: 'flex-start',
+                  gap: 1,
+                }}>
+                  {m.role === 'assistant' && (
+                    <Avatar 
+                      sx={{ 
+                        bgcolor: 'primary.main',
+                        width: 32,
+                        height: 32,
+                        mt: 0.5,
+                      }}
+                    >
+                      <SmartToy />
+                    </Avatar>
                   )}
-                  <ChatMessage content={m.content} role={m.role as 'user' | 'assistant'} />
-                </Card>
-              </Box>
+                  <Card 
+                    sx={{ 
+                      maxWidth: '70%', 
+                      p: 2,
+                      borderRadius: 3,
+                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                      '&:hover': {
+                        transform: 'translateY(-1px)',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                      },
+                    }}
+                  >
+                    {m.imagePreviewUrl && (
+                      <Zoom in timeout={300}>
+                        <Box sx={{ mb: 2 }}>
+                          <img 
+                            src={m.imagePreviewUrl} 
+                            alt="User uploaded" 
+                            style={{ 
+                              maxWidth: '100%', 
+                              borderRadius: 8,
+                              display: 'block'
+                            }}
+                          />
+                        </Box>
+                      </Zoom>
+                    )}
+                    <ChatMessage content={m.content} role={m.role as 'user' | 'assistant'} />
+                  </Card>
+                  {m.role === 'user' && (
+                    <Avatar 
+                      sx={{ 
+                        bgcolor: 'secondary.main',
+                        width: 32,
+                        height: 32,
+                        mt: 0.5,
+                      }}
+                    >
+                      <Person />
+                    </Avatar>
+                  )}
+                </Box>
+              </Fade>
             ))
           )}
           {isLoading && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-              <CircularProgress size={20} />
-            </Box>
+            <Fade in timeout={300}>
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center',
+                py: 2,
+                gap: 1,
+              }}>
+                <CircularProgress size={20} />
+                <Typography variant="body2" color="text.secondary">
+                  AI is thinking...
+                </Typography>
+              </Box>
+            </Fade>
           )}
           <div ref={messagesEndRef} />
         </Paper>
+      </Slide>
         
         {/* Context Panel - removed for now as data property is not available in this version */}
         
-        {/* Input Area */}
-        <Box component="form" onSubmit={onSubmit} sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
-          {pendingImage && (
-            <Box sx={{ position: 'relative' }}>
-              <img 
-                src={pendingImage.previewUrl} 
-                alt="Preview" 
-                style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 4 }} 
-              />
-              <IconButton
-                size="small"
-                sx={{ position: 'absolute', top: -8, right: -8, bgcolor: 'background.paper' }}
-                onClick={() => {
-                  if (pendingImage.previewUrl) {
-                    URL.revokeObjectURL(pendingImage.previewUrl);
-                  }
-                  setPendingImage(null);
+          {/* Input Area */}
+          <Slide direction="up" in={mounted} timeout={800}>
+            <Box 
+              component="form" 
+              onSubmit={onSubmit} 
+              sx={{ 
+                display: 'flex', 
+                gap: 1, 
+                alignItems: 'flex-end',
+                p: 2,
+                backgroundColor: 'background.paper',
+                borderRadius: 3,
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                '&:hover': {
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                },
+              }}
+            >
+              {pendingImage && (
+                <Fade in timeout={300}>
+                  <Box sx={{ position: 'relative' }}>
+                    <img 
+                      src={pendingImage.previewUrl} 
+                      alt="Preview" 
+                      style={{ 
+                        width: 60, 
+                        height: 60, 
+                        objectFit: 'cover', 
+                        borderRadius: 8,
+                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                      }} 
+                    />
+                    <IconButton
+                      size="small"
+                      sx={{ 
+                        position: 'absolute', 
+                        top: -8, 
+                        right: -8, 
+                        bgcolor: 'background.paper',
+                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                        '&:hover': {
+                          transform: 'scale(1.1)',
+                          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        },
+                      }}
+                      onClick={() => {
+                        if (pendingImage.previewUrl) {
+                          URL.revokeObjectURL(pendingImage.previewUrl);
+                        }
+                        setPendingImage(null);
+                      }}
+                    >
+                      <Close fontSize="small" />
+                    </IconButton>
+                  </Box>
+                </Fade>
+              )}
+              
+              <IconButton 
+                component="label" 
+                disabled={isLoading}
+                sx={{
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  '&:hover': {
+                    transform: 'scale(1.1)',
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                  },
                 }}
               >
-                <Close fontSize="small" />
+                <ImageIcon />
+                <input type="file" hidden accept="image/*" onChange={handleImageSelect} />
               </IconButton>
+              
+              <TextField
+                fullWidth
+                multiline
+                maxRows={4}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Ask about the videos..."
+                disabled={selectedVideoIds.length === 0 || isLoading}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    '&:hover': {
+                      transform: 'translateY(-1px)',
+                      boxShadow: '0 4px 12px rgba(99, 102, 241, 0.15)',
+                    },
+                    '&.Mui-focused': {
+                      transform: 'translateY(-1px)',
+                      boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)',
+                    },
+                  },
+                }}
+              />
+              
+              {isLoading ? (
+                <Button 
+                  variant="outlined" 
+                  startIcon={<Stop />} 
+                  disabled
+                  sx={{
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  }}
+                >
+                  Stop
+                </Button>
+              ) : (
+                <Button 
+                  type="submit" 
+                  variant="contained" 
+                  startIcon={<Send />} 
+                  disabled={selectedVideoIds.length === 0 || !input.trim()}
+                  sx={{
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    boxShadow: '0 4px 15px rgba(99, 102, 241, 0.4)',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 8px 25px rgba(99, 102, 241, 0.4)',
+                    },
+                    '&:disabled': {
+                      background: 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)',
+                      transform: 'none',
+                      boxShadow: '0 4px 15px rgba(156, 163, 175, 0.4)',
+                    },
+                  }}
+                >
+                  Send
+                </Button>
+              )}
             </Box>
-          )}
-          
-              <IconButton component="label" disabled={isLoading}>
-            <ImageIcon />
-            <input type="file" hidden accept="image/*" onChange={handleImageSelect} />
-          </IconButton>
-          
-          <TextField
-            fullWidth
-            multiline
-            maxRows={4}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about the videos..."
-            disabled={selectedVideoIds.length === 0 || isLoading}
-          />
-          
-          {isLoading ? (
-            <Button variant="outlined" startIcon={<Stop />} disabled>Stop</Button>
-          ) : (
-            <Button type="submit" variant="contained" startIcon={<Send />} disabled={selectedVideoIds.length === 0 || !input.trim()}>
-              Send
-            </Button>
-          )}
+          </Slide>
         </Box>
-      </Box>
+      </Fade>
     </DashboardLayout>
   );
 }

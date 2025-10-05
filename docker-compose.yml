@@ -18,7 +18,7 @@ services:
       retries: 20
 
   worker:
-    image: videoqa-worker:0.0.18
+    image: videoqa-worker:0.0.19
     pull_policy: never
     env_file:
       - .env.local

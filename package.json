@@ -11,9 +11,6 @@
   "dependencies": {
     "@ai-sdk/openai": "^2.0.42",
     "@ai-sdk/react": "^2.0.60",
-    "@emotion/cache": "^11.14.0",
-    "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.4",
     "@mui/material": "^7.3.4",
     "@mui/material-nextjs": "^7.3.3",

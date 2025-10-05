@@ -2,7 +2,7 @@
 
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Box, Card, Typography, Chip, Skeleton } from '@mui/material';
+import { Box, Card, Typography, Chip, Skeleton, Fade, Zoom, Grow } from '@mui/material';
 import { AccessTime, Image as ImageIcon } from '@mui/icons-material';
 import Image from 'next/image';
 
@@ -15,6 +15,7 @@ interface ChatMessageProps {
 const FrameImage = ({ frameId }: { frameId: string }) => {
   const [imageError, setImageError] = React.useState(false);
   const [imageLoading, setImageLoading] = React.useState(true);
+  const [imageLoaded, setImageLoaded] = React.useState(false);
   
   // Extract video_id and frame number from frame_id pattern
   // frame_id format: {video_id}_frame_{frame_num:03d}
@@ -26,55 +27,107 @@ const FrameImage = ({ frameId }: { frameId: string }) => {
   
   if (imageError) {
     return (
-      <Card sx={{ p: 2, mt: 1, bgcolor: 'grey.100' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <ImageIcon color="disabled" />
-          <Typography variant="body2" color="text.secondary">
-            Frame image not available
-          </Typography>
-        </Box>
-      </Card>
+      <Fade in timeout={300}>
+        <Card sx={{ 
+          p: 2, 
+          mt: 1, 
+          bgcolor: 'grey.100',
+          borderRadius: 2,
+          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+          '&:hover': {
+            transform: 'translateY(-1px)',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+          },
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <ImageIcon color="disabled" />
+            <Typography variant="body2" color="text.secondary">
+              Frame image not available
+            </Typography>
+          </Box>
+        </Card>
+      </Fade>
     );
   }
   
   return (
-    <Card sx={{ p: 2, mt: 1, maxWidth: 400 }}>
-      {imageLoading && (
-        <Skeleton variant="rectangular" width="100%" height={200} />
-      )}
-      <Image
-        src={imagePath}
-        alt={`Frame ${frameNum} from video ${videoId}`}
-        width={400}
-        height={200}
-        style={{
-          width: '100%',
-          height: 'auto',
-          display: imageLoading ? 'none' : 'block'
-        }}
-        onLoad={() => setImageLoading(false)}
-        onError={() => {
-          setImageError(true);
-          setImageLoading(false);
-        }}
-      />
-      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-        Frame {frameNum} • {videoId}
-      </Typography>
-    </Card>
+    <Fade in timeout={300}>
+      <Card sx={{ 
+        p: 2, 
+        mt: 1, 
+        maxWidth: 400,
+        borderRadius: 2,
+        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        '&:hover': {
+          transform: 'translateY(-2px)',
+          boxShadow: '0 8px 25px rgba(0, 0, 0, 0.15)',
+        },
+      }}>
+        {imageLoading && (
+          <Skeleton 
+            variant="rectangular" 
+            width="100%" 
+            height={200}
+            sx={{ borderRadius: 1 }}
+          />
+        )}
+        <Zoom in={imageLoaded} timeout={400}>
+          <Image
+            src={imagePath}
+            alt={`Frame ${frameNum} from video ${videoId}`}
+            width={400}
+            height={200}
+            style={{
+              width: '100%',
+              height: 'auto',
+              display: imageLoaded ? 'block' : 'none',
+              borderRadius: 8,
+            }}
+            onLoad={() => {
+              setImageLoading(false);
+              setImageLoaded(true);
+            }}
+            onError={() => {
+              setImageError(true);
+              setImageLoading(false);
+            }}
+          />
+        </Zoom>
+        <Typography 
+          variant="caption" 
+          color="text.secondary" 
+          sx={{ 
+            mt: 1, 
+            display: 'block',
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
+        >
+          Frame {frameNum} • {videoId}
+        </Typography>
+      </Card>
+    </Fade>
   );
 };
 
 // Custom component for timestamps
 const TimestampChip = ({ timestamp }: { timestamp: string }) => (
-  <Chip
-    icon={<AccessTime />}
-    label={timestamp}
-    size="small"
-    color="primary"
-    variant="outlined"
-    sx={{ ml: 1 }}
-  />
+  <Grow in timeout={300}>
+    <Chip
+      icon={<AccessTime />}
+      label={timestamp}
+      size="small"
+      color="primary"
+      variant="outlined"
+      sx={{ 
+        ml: 1,
+        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        '&:hover': {
+          transform: 'scale(1.05)',
+          boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
+        },
+      }}
+    />
+  </Grow>
 );
 
 // Custom renderers for ReactMarkdown
@@ -153,7 +206,12 @@ const customComponents = {
         py: 0.5,
         borderRadius: 1,
         fontFamily: 'monospace',
-        fontSize: '0.875rem'
+        fontSize: '0.875rem',
+        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        '&:hover': {
+          bgcolor: 'grey.200',
+          transform: 'scale(1.02)',
+        },
       }}
       {...props}
     >
@@ -162,28 +220,41 @@ const customComponents = {
   ),
   
   pre: ({ children, ...props }: any) => (
-    <Box
-      component="pre"
-      sx={{
-        bgcolor: 'grey.100',
-        p: 2,
-        borderRadius: 1,
-        overflow: 'auto',
-        mb: 2
-      }}
-      {...props}
-    >
-      {children}
-    </Box>
+    <Fade in timeout={300}>
+      <Box
+        component="pre"
+        sx={{
+          bgcolor: 'grey.100',
+          p: 2,
+          borderRadius: 2,
+          overflow: 'auto',
+          mb: 2,
+          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+          '&:hover': {
+            bgcolor: 'grey.200',
+            transform: 'translateY(-1px)',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+          },
+        }}
+        {...props}
+      >
+        {children}
+      </Box>
+    </Fade>
   )
 };
 
 export default function ChatMessage({ content, role }: ChatMessageProps) {
   return (
-    <Box sx={{ width: '100%' }}>
-      <ReactMarkdown components={customComponents}>
-        {content}
-      </ReactMarkdown>
-    </Box>
+    <Fade in timeout={400}>
+      <Box sx={{ 
+        width: '100%',
+        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+      }}>
+        <ReactMarkdown components={customComponents}>
+          {content}
+        </ReactMarkdown>
+      </Box>
+    </Fade>
   );
 }
