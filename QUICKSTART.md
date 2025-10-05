@@ -31,7 +31,7 @@ EOF
 ### 3. Build Worker Image
 ```bash
 # Build the worker Docker image
-cd ../video-worker
+cd ../video-qa-worker
 docker build -t videoqa-worker:0.0.17 .
 cd ../video-qa
 ```
@@ -159,8 +159,8 @@ pnpm dev -- -p 3001
 ## Next Steps
 
 - [ ] Read [ARCHITECTURE.md](./ARCHITECTURE.md) for system design details
-- [ ] Explore [../video-worker/README.md](../video-worker/README.md) for worker documentation
-- [ ] Check [../video-worker/TROUBLESHOOTING.md](../video-worker/TROUBLESHOOTING.md) for common issues
+- [ ] Explore [../video-qa-worker/README.md](../video-qa-worker/README.md) for worker documentation
+- [ ] Check [../video-qa-worker/TROUBLESHOOTING.md](../video-qa-worker/TROUBLESHOOTING.md) for common issues
 - [ ] Try uploading different video types and sizes
 - [ ] Monitor processing logs to understand the pipeline
 

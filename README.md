@@ -44,7 +44,7 @@ cp .env.example .env.local
 ### 2. Build and Start Services
 ```bash
 # Build worker image
-cd ../video-worker
+cd ../video-qa-worker
 docker build -t videoqa-worker:0.0.17 .
 
 # Start database and worker
@@ -217,4 +217,4 @@ docker-compose up -d
 
 - [ARCHITECTURE.md](./ARCHITECTURE.md) - Detailed system design
 - [QUICKSTART.md](./QUICKSTART.md) - 5-minute setup guide
-- [../video-worker/README.md](../video-worker/README.md) - Worker documentation
+- [../video-qa-worker/README.md](../video-qa-worker/README.md) - Worker documentation

@@ -316,6 +316,6 @@ The worker is **tightly coupled** to the database schema:
 
 - [README.md](./README.md) - Main project documentation
 - [QUICKSTART.md](./QUICKSTART.md) - 5-minute setup guide
-- [../video-worker/README.md](../video-worker/README.md) - Worker documentation
-- [../video-worker/PIPELINE.md](../video-worker/PIPELINE.md) - Pipeline details
-- [../video-worker/DATA_MODEL.md](../video-worker/DATA_MODEL.md) - Database schema
+- [../video-qa-worker/README.md](../video-qa-worker/README.md) - Worker documentation
+- [../video-qa-worker/PIPELINE.md](../video-qa-worker/PIPELINE.md) - Pipeline details
+- [../video-qa-worker/DATA_MODEL.md](../video-qa-worker/DATA_MODEL.md) - Database schema
